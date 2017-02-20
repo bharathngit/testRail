@@ -39,8 +39,7 @@ public class DTestRail2 {
 	 
 		              
 		              
-		          	APIClient client = new APIClient(
-			                 "https://internationalsos.testrail.net");
+		          	
 		 
 		             
 		              
@@ -75,28 +74,26 @@ public class DTestRail2 {
 	                JSONObject jsonObject;
 	                APIClient client = new APIClient(
 			                 "https://internationalsos.testrail.net");
-					    client.setUser("bharath.nadukatla@gallop.net");
-					    client.setPassword("pqUkNXLigTp63CBxmGfx-WUvg8MVPQZ7UcwO2cFuh");
-	                
+					    
 	             //Setting up login url and creds
-	              dologin();
+	              dologin(client);
 	             try {
 					//Getting Project ID of TT
-					 projectId=DTestRail2.getID("get_projects", projectName);
+					 projectId=DTestRail2.getID("get_projects", projectName,client);
 				} catch (Exception e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				}
 	             try {
 					//Getting Milestone ID of Sandbox
-					 mileStoneId=getID("get_milestones/" + projectId, mileStoneName);
+					 mileStoneId=getID("get_milestones/" + projectId, mileStoneName,client);
 				} catch (Exception e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				}
 	           try {
 					//Getting sub-Milestone ID of Sandbox 
-					 subMileStoneId=getID("get_milestones/" + mileStoneId, subMileStoneName);
+					 subMileStoneId=getID("get_milestones/" + mileStoneId, subMileStoneName,client);
 				} catch (Exception e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
@@ -104,7 +101,7 @@ public class DTestRail2 {
 	              
 	           try {
 					//Getting Test suites linked to Milestone Sandbox
-					  testSuiteId=getIDs("get_suites/" + projectId, testSuitesName);
+					  testSuiteId=getIDs("get_suites/" + projectId, testSuitesName,client);
 				} catch (Exception e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
@@ -114,7 +111,7 @@ public class DTestRail2 {
 					//Get test runs from project TT
 					  
 					  testRunId=getIDs("get_runs/"
-					          + projectId, testRunName);
+					          + projectId, testRunName,client);
 				} catch (Exception e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
@@ -281,20 +278,19 @@ public class DTestRail2 {
 	              }*/
 	       }
      
-		     public static void dologin() {
+		     public static void dologin(APIClient client) {
 				// TODO Auto-generated method stub
 		    	 System.out.println("Inside login");
-		    	 	
+		    	 client.setUser("bharath.nadukatla@gallop.net");
+				    client.setPassword("pqUkNXLigTp63CBxmGfx-WUvg8MVPQZ7UcwO2cFuh");
+             
 				    System.out.println("Login complete");
 			}
 		
-			public static Long getID(String attribute, String attrName) throws MalformedURLException, IOException, APIException{
+			public static Long getID(String attribute, String attrName,APIClient client) throws MalformedURLException, IOException, APIException{
 				 JSONArray jsonArray;
 	                JSONObject jsonObject;
-	                APIClient client = new APIClient(
-			                 "https://internationalsos.testrail.net");
-					    client.setUser("bharath.nadukatla@gallop.net");
-					    client.setPassword("pqUkNXLigTp63CBxmGfx-WUvg8MVPQZ7UcwO2cFuh");
+	                
 		    	 Long attributeId = 0L;
 		    	 jsonArray = (JSONArray) client.sendGet(attribute);
 		        for (int i = 0; i < (jsonArray.size()); i++) {
@@ -308,13 +304,10 @@ public class DTestRail2 {
 		        return attributeId;
 		     }
 			
-			public static Long[] getIDs(String attribute, String[] attrName) throws MalformedURLException, IOException, APIException{
+			public static Long[] getIDs(String attribute, String[] attrName, APIClient client) throws MalformedURLException, IOException, APIException{
 				 JSONArray jsonArray;
 	                JSONObject jsonObject;
-	                APIClient client = new APIClient(
-			                 "https://internationalsos.testrail.net");
-					    client.setUser("bharath.nadukatla@gallop.net");
-					    client.setPassword("pqUkNXLigTp63CBxmGfx-WUvg8MVPQZ7UcwO2cFuh");    	
+	                   	
 		    	 jsonArray = (JSONArray) client.sendGet(attribute);
 		    	 Long[] attributeId=new Long[jsonArray.size()];
 		    	 
