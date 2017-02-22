@@ -2,6 +2,10 @@ package com.automation.testrail;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.json.simple.JSONArray;
 import org.json.JSONException;
@@ -25,6 +29,7 @@ public class ReadfromTestRail {
 	
 	
 	
+	@SuppressWarnings({ "null", "unchecked" })
 	public static void main(String[] args) {
 
 		
@@ -32,7 +37,8 @@ public class ReadfromTestRail {
 		String milestoneName="Sandbox_1.0";
 		String subMilestoneName="SubSandbox_1.0";
 		String testPlanName="Sandbox_1.0_TestPlan";
-		
+		List<Long> failedTests= new ArrayList<Long>();
+		Map<Long, String> failedTest=new HashMap<Long, String>();
 		
 		//Get Project ID - Access TestRail API get_projects with Parameter is_completed=0 for Active projects
 		try {
@@ -128,6 +134,61 @@ public class ReadfromTestRail {
 			e.printStackTrace();
 		}
 		
+		//get_results_for_run/:run_id and return Test IDs of Failed tests
+		
+				/*# The latest 10 results for test run with ID 1 created by user 5
+				GET index.php?/api/v2/get_results_for_run/1&created_by=5&limit=10*/
+		APIClient client=new APIClient(baseUrl);
+	 	client.setUser(uName);
+	 	client.setPassword(pwD);		
+		
+	 	try {
+			jsonArr= (JSONArray)client.sendGet("get_results_for_run/3148");
+			System.out.println(jsonArr.toString());
+			
+			
+			for(int i=0;i<jsonArr.size();i++){
+				jsonObj=(JSONObject)jsonArr.get(i);
+				Long stId=(Long)jsonObj.get("status_id");
+				if(stId==5){
+					Long tId=(Long)jsonObj.get("test_id");
+					
+					failedTests.add(tId);
+				}
+			}
+			System.out.println("failedTests IDs of Run ID 3148: "+failedTests);
+			
+		} catch (IOException | APIException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		//get_test/:test_id getting failed testcases names -get_test returns JSONObject
+	 	try {
+	 		for(int i=0;i<failedTests.size();i++){
+	 			jsonObj= (JSONObject) client.sendGet("get_test/"+failedTests.get(i));
+//	 			System.out.println("Testcase info arrays: "+jsonObj.toString());
+				
+					Long runId=(Long)jsonObj.get("case_id"); //For re-adding test cases to Re-run testruns
+					String title=jsonObj.get("title").toString();
+					
+					failedTest.put(runId, title);
+					
+				}
+	 		System.out.println("Failed Tests: "+failedTest.size());
+	 		//Pringting Hashmap
+	 		
+//	 		System.out.println("Failed Tests:");
+ 			System.out.println("CaseID  :  Title");
+	 		for (Map.Entry<Long, String> entry : failedTest.entrySet()) {
+	 			
+	 			System.out.println(entry.getKey()+" : "+entry.getValue());
+	 		}
+	 		} catch (IOException | APIException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	 	
 		
 	}
 
