@@ -12,59 +12,63 @@ import org.json.JSONException;
 import org.json.simple.JSONObject;
 
 public class ReadfromTestRail {
-
+	//Initialize variables
 	public static String baseUrl="https://internationalsos.testrail.net";
 	public static String uName="bharath.nadukatla@gallop.net";
 	public static String pwD="pqUkNXLigTp63CBxmGfx-WUvg8MVPQZ7UcwO2cFuh";
+	public static String projectName="Sandbox";
+	public static String milestoneName="Sandbox_1.0";
+	public static String subMilestoneName="SubSandbox_1.0";
+	public static String testPlanName="Sandbox_1.0_TestPlan";
+	public static String testRunName="Sandbox_1.0_TestSuite_1";
+	public static String browserName="IE";
+	
+	
+	//Declare variables
 	public static JSONArray jsonArr;
 	public static JSONObject jsonObj;
 	public static Long milestoneID;
 	public static Long projectID;
 	public static Long submilestoneID;
 	public static Long planID;
-	private static Long configID;
-	private static Object browserID;
+	public static Long configID;
+	public static Long browserID;
+	public static List<Long> testRunID=new ArrayList<Long>();
+	public static List<String> testRunNames=new ArrayList<String>();
+	public static Map<Long, String> testRuns=new HashMap<Long, String>();
+	public static List<Long> failedTests= new ArrayList<Long>();
+	public static Map<Long, String> failedCASE=new HashMap<Long, String>();
 	
 	
 	
 	
-	
-	@SuppressWarnings({ "null", "unchecked" })
 	public static void main(String[] args) {
-
-		
-		String projectName="Sandbox";
-		String milestoneName="Sandbox_1.0";
-		String subMilestoneName="SubSandbox_1.0";
-		String testPlanName="Sandbox_1.0_TestPlan";
-		List<Long> failedTests= new ArrayList<Long>();
-		Map<Long, String> failedTest=new HashMap<Long, String>();
+	
+		APIClient client=new APIClient(baseUrl);
+	 	client.setUser(uName);
+	 	client.setPassword(pwD);	
 		
 		//Get Project ID - Access TestRail API get_projects with Parameter is_completed=0 for Active projects
 		try {
+			System.out.println("========GETTING PROJECT ID=====");
 			projectID=getID("get_projects&is_completed=0",projectName);
 			System.out.println("Project ID of "+projectName+": "+projectID);
 		} catch (JSONException|IOException | APIException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} 
 		
 		//Get Milestone ID- get_milestones/:project_id and get_milestone/:milestone_id
 		try {
+			System.out.println("========GETTING MILESTONE ID=====");
 			milestoneID=getID("get_milestones/"+projectID,milestoneName);
 			System.out.println("Milestone ID of "+milestoneName+": "+milestoneID);
 		} catch (JSONException|IOException | APIException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
 		//Get Sub-Milestones IDs
 		try {
-			 
-			APIClient client=new APIClient(baseUrl);
-		 	client.setUser(uName);
-		 	client.setPassword(pwD);
-		 	
+			System.out.println("========GETTING SUB-MILESTONE ID=====");
 			jsonObj=(JSONObject)client.sendGet("get_milestone/"+milestoneID);
 			
 			jsonArr=(JSONArray)jsonObj.get("milestones");
@@ -77,35 +81,77 @@ public class ReadfromTestRail {
 			}
 			System.out.println("Sub Milestone ID of "+subMilestoneName+": "+submilestoneID);
 		} catch (IOException | APIException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
+		
+		
+		//Get TESTPLAN ID for project "get_plans/"+projectID
 		try {
+			System.out.println("========GETTING TESTPLAN ID=====");
 			planID=getID("get_plans/"+projectID,testPlanName);
 			System.out.println("TestPlan ID of "+testPlanName+": "+planID);
 		} catch (JSONException|IOException | APIException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} 
 		
-		//Get configuration info - Config ID and Browser ID - on Testplan -- get_configs/:project_id
+		//GET TESTRUNS(RUN IDs - NAMES) within a TESTPLAN : get_plan/:plan_id
 		try {
-			/*configID=getID("get_configs/"+projectID,"chrome");
-			System.out.println("configID of chrome: "+configID);
-			*/
-			APIClient client=new APIClient(baseUrl);
-		 	client.setUser(uName);
-		 	client.setPassword(pwD);
-		 	
-		 	jsonArr=(JSONArray)client.sendGet("get_configs/"+projectID);
+			System.out.println("========GET TESTRUNS(RUN IDs - NAMES) within a TESTPLAN=====");
+			Long runID = 0L;
+			String runName;
 			
-			//jsonArr=(JSONArray)jsonObj.get("milestones");
-			System.out.println(jsonArr.size());
+			//Get TESTPLAN object
+			jsonObj= (JSONObject)client.sendGet("get_plan/"+planID);
+//			System.out.println("TESTPLAN Array:"+jsonObj);
+			
+			//Get ENTRIES array
+			jsonArr=(JSONArray)jsonObj.get("entries");
+//			System.out.println("Entries Array size: "+jsonArr.size());
+			//Iterate ENTRIES array to get RUNS array
+				for(int i=0;i<jsonArr.size();i++){
+//					System.out.println("Inside entries for loop");
+					jsonObj=(JSONObject)jsonArr.get(i);
+					runName=jsonObj.get("name").toString();//Get TESTRUN Name
+					testRunNames.add(runName);
+					//Get RUNS array
+					JSONArray jsonArrRuns=(JSONArray)jsonObj.get("runs");
+//					System.out.println("RUNS Array size "+jsonArrRuns.size());
+					for(int j=0;j<jsonArrRuns.size();j++){
+						JSONObject jsonObjRuns=(JSONObject) jsonArrRuns.get(j);
+						runID=(Long)jsonObjRuns.get("id");
+						testRunID.add(runID);//Get RUN ID for the Test Run
+					}
+					testRuns.put(runID, runName);
+				}
+			System.out.println("Test Runs in the TestPlan "+testPlanName+" are:");
+			for (Map.Entry<Long, String> entry : testRuns.entrySet()) {
+				System.out.println(entry.getKey()+" : "+entry.getValue());
+	 		}
+		
+		} catch (IOException | APIException e2) {
+			e2.printStackTrace();
+		}
+	
+		
+		
+		/*//Get TESTRUNS for Project : get_runs/:project_id
+		try {
+			testRunID=getID("get_runs/"+projectID, testRunName);
+			System.out.println("TestRUN ID of "+testRunName+": "+testRunID);
+		} catch (IOException | APIException | JSONException e1) {
+			e1.printStackTrace();
+		}*/
+		
+		//Get CONFIGURATION INFO - Config ID and Browser ID - on TESTPLAN -- get_configs/:project_id
+		try {
+			System.out.println("========Get CONFIGURATION INFO - Config ID and Browser ID - on TESTPLAN =====");
+		 	jsonArr=(JSONArray)client.sendGet("get_configs/"+projectID);
+
 			//Config ID for Web Browsers
 			for(int i=0;i<jsonArr.size();i++){
 				
-				System.out.println("Array: "+jsonArr.get(i).toString());
+//				System.out.println("Array: "+jsonArr.get(i).toString());
 				
 				jsonObj=(JSONObject)jsonArr.get(i);
 				if(jsonObj.get("name").toString().equalsIgnoreCase("Web Browsers")){
@@ -113,79 +159,79 @@ public class ReadfromTestRail {
 				}
 				
 				JSONArray configsArr=(JSONArray)jsonObj.get("configs");
-				System.out.println("Configs"+configsArr);
+//				System.out.println("Configs"+configsArr);
 				//Browser ID
 				for(int j=0;j<configsArr.size();j++){
 					
 					jsonObj=(JSONObject)configsArr.get(j);
 					
-					if((jsonObj.get("name").toString()).equalsIgnoreCase("Chrome")){
-						browserID=jsonObj.get("id");
+					if((jsonObj.get("name").toString()).equalsIgnoreCase(browserName)){//Need parameterization for browser
+						browserID=(Long)jsonObj.get("id");
 					}
 				}
-				System.out.println("No. of configs"+configsArr.size());			
+//						
 			}
 			
 			System.out.println("configID of Web Browsers: "+configID);
-			System.out.println("browserID of Chromers: "+browserID);
+			System.out.println("browserID of "+browserName+" is "+browserID);
 			
 		} catch (IOException | APIException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
-		//get_results_for_run/:run_id and return Test IDs of Failed tests
 		
-				/*# The latest 10 results for test run with ID 1 created by user 5
-				GET index.php?/api/v2/get_results_for_run/1&created_by=5&limit=10*/
-		APIClient client=new APIClient(baseUrl);
-	 	client.setUser(uName);
-	 	client.setPassword(pwD);		
 		
+		/*FAILED TESTS INFO : get_results_for_run/:run_id and return Test IDs of Failed tests
+				Status Codes:
+					==============================
+					RETEST=4
+					BLOCKED=2
+					PASSED=1
+					FAILED=5*/
+	
 	 	try {
-			jsonArr= (JSONArray)client.sendGet("get_results_for_run/3148");
-			System.out.println(jsonArr.toString());
-			
+	 		System.out.println("========Get FAILED TESTS INFO OF A TESTRUN=====");
+	 		for(Long runId:testRunID){
+	 		jsonArr= (JSONArray)client.sendGet("get_results_for_run/"+runId);
+//			System.out.println(jsonArr.toString());
 			
 			for(int i=0;i<jsonArr.size();i++){
 				jsonObj=(JSONObject)jsonArr.get(i);
 				Long stId=(Long)jsonObj.get("status_id");
-				if(stId==5){
+				if(stId==5){//Looking for Failed tests with status_id==5
 					Long tId=(Long)jsonObj.get("test_id");
-					
+					//Add to HashMap
 					failedTests.add(tId);
+					}
 				}
-			}
-			System.out.println("failedTests IDs of Run ID 3148: "+failedTests);
-			
+	 		}
+	 		System.out.println("Failed Tests' TestIDs are :"+failedTests.toString());	
 		} catch (IOException | APIException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
-		//get_test/:test_id getting failed testcases names -get_test returns JSONObject
+		//GET TEST-CASES INFO - get_test/:test_id getting failed cases -CASEID AND TITLE -get_test returns JSONObject
 	 	try {
+	 		System.out.println("========Get CASEID AND TITLE OF THE FAILED TESTS INFO OF A TESTRUN=====");
 	 		for(int i=0;i<failedTests.size();i++){
 	 			jsonObj= (JSONObject) client.sendGet("get_test/"+failedTests.get(i));
-//	 			System.out.println("Testcase info arrays: "+jsonObj.toString());
+//	 			System.out.println("TEST info arrays: "+jsonObj.toString());
 				
-					Long runId=(Long)jsonObj.get("case_id"); //For re-adding test cases to Re-run testruns
+					Long caseId=(Long)jsonObj.get("case_id"); //For re-adding test cases to Re-run testruns
 					String title=jsonObj.get("title").toString();
 					
-					failedTest.put(runId, title);
+					failedCASE.put(caseId, title);
 					
 				}
-	 		System.out.println("Failed Tests: "+failedTest.size());
-	 		//Pringting Hashmap
+	 		System.out.println("No. of Failed Tests: "+failedCASE.size());
 	 		
-//	 		System.out.println("Failed Tests:");
- 			System.out.println("CaseID  :  Title");
-	 		for (Map.Entry<Long, String> entry : failedTest.entrySet()) {
+	 		//Printing Hashmap
+	 		System.out.println("CaseID  :  Title");
+	 		for (Map.Entry<Long, String> entry : failedCASE.entrySet()) {
 	 			
 	 			System.out.println(entry.getKey()+" : "+entry.getValue());
 	 		}
 	 		} catch (IOException | APIException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	 	
@@ -199,14 +245,12 @@ public class ReadfromTestRail {
 		 	client.setUser(uName);
 		 	client.setPassword(pwD);
  
-		//Fetches list of all the ACTIVE projects
-	 
 		 jsonArr= (JSONArray)client.sendGet(attribute);
 		 
 		 System.out.println("No. of items: "+(jsonArr.size()));
 		 
 		 for(int i=0;i<jsonArr.size();i++){
-			 System.out.println("inside for loop");
+//			 System.out.println("inside for loop");
 			 jsonObj=(JSONObject)jsonArr.get(i);
 			 if((jsonObj.get("name").toString().equalsIgnoreCase(attName))){
 				 id=(Long)jsonObj.get("id");
