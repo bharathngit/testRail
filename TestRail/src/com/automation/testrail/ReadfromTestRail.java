@@ -22,7 +22,7 @@ public class ReadfromTestRail {
 	public static String testPlanName="Sandbox_1.0_TestPlan";
 	public static String testRunName="Sandbox_1.0_TestSuite_1";
 	public static String browserName="IE";
-	
+	public static String configName="Web Browsers";
 	
 	//Declare variables
 	public static JSONArray jsonArr;
@@ -110,10 +110,10 @@ public class ReadfromTestRail {
 //			System.out.println("Entries Array size: "+jsonArr.size());
 			//Iterate ENTRIES array to get RUNS array
 				for(int i=0;i<jsonArr.size();i++){
-//					System.out.println("Inside entries for loop");
 					jsonObj=(JSONObject)jsonArr.get(i);
 					runName=jsonObj.get("name").toString();//Get TESTRUN Name
 					testRunNames.add(runName);
+					
 					//Get RUNS array
 					JSONArray jsonArrRuns=(JSONArray)jsonObj.get("runs");
 //					System.out.println("RUNS Array size "+jsonArrRuns.size());
@@ -125,6 +125,8 @@ public class ReadfromTestRail {
 					testRuns.put(runID, runName);
 				}
 			System.out.println("Test Runs in the TestPlan "+testPlanName+" are:");
+			System.out.println("RunID : Test Run Name");
+			System.out.println("===================================");
 			for (Map.Entry<Long, String> entry : testRuns.entrySet()) {
 				System.out.println(entry.getKey()+" : "+entry.getValue());
 	 		}
@@ -154,7 +156,7 @@ public class ReadfromTestRail {
 //				System.out.println("Array: "+jsonArr.get(i).toString());
 				
 				jsonObj=(JSONObject)jsonArr.get(i);
-				if(jsonObj.get("name").toString().equalsIgnoreCase("Web Browsers")){
+				if(jsonObj.get("name").toString().equalsIgnoreCase(configName)){
 					configID=(Long) jsonObj.get("id");
 				}
 				
@@ -165,15 +167,15 @@ public class ReadfromTestRail {
 					
 					jsonObj=(JSONObject)configsArr.get(j);
 					
-					if((jsonObj.get("name").toString()).equalsIgnoreCase(browserName)){//Need parameterization for browser
+					if((jsonObj.get("name").toString()).equalsIgnoreCase(browserName)){
 						browserID=(Long)jsonObj.get("id");
 					}
 				}
 //						
 			}
 			
-			System.out.println("configID of Web Browsers: "+configID);
-			System.out.println("browserID of "+browserName+" is "+browserID);
+			System.out.println("configID of "+configName+": "+configID);
+			System.out.println("browserID of "+browserName+" : "+browserID);
 			
 		} catch (IOException | APIException e) {
 			e.printStackTrace();
@@ -190,7 +192,7 @@ public class ReadfromTestRail {
 					FAILED=5*/
 	
 	 	try {
-	 		System.out.println("========Get FAILED TESTS INFO OF A TESTRUN=====");
+	 		System.out.println("========Get FAILED TESTS INFO (status_id and test_id OF A TESTRUN=====");
 	 		for(Long runId:testRunID){
 	 		jsonArr= (JSONArray)client.sendGet("get_results_for_run/"+runId);
 //			System.out.println(jsonArr.toString());
@@ -212,7 +214,7 @@ public class ReadfromTestRail {
 		
 		//GET TEST-CASES INFO - get_test/:test_id getting failed cases -CASEID AND TITLE -get_test returns JSONObject
 	 	try {
-	 		System.out.println("========Get CASEID AND TITLE OF THE FAILED TESTS INFO OF A TESTRUN=====");
+	 		System.out.println("========Get CASEID AND TITLE OF THE FAILED TESTS OF A TESTRUN=====");
 	 		for(int i=0;i<failedTests.size();i++){
 	 			jsonObj= (JSONObject) client.sendGet("get_test/"+failedTests.get(i));
 //	 			System.out.println("TEST info arrays: "+jsonObj.toString());
