@@ -37,11 +37,18 @@ public class ReadfromTestRail {
 	public static List<String> testRunNames=new ArrayList<String>();
 	public static Map<Long, String> testRuns=new HashMap<Long, String>();
 	public static List<Long> failedTests= new ArrayList<Long>();
+	public static List<Long> failedCases= new ArrayList<Long>();
 	public static Map<Long, String> failedCASE=new HashMap<Long, String>();
+	public static Map<Long,Long> suiteIdFailedCASE=new HashMap<Long,Long>();
+	public static Map<Long, List> suiteIDsfailedCASE=new HashMap<Long, List>();
+	public static Map<Long, Long> uniqSuiteIDs=new HashMap<Long, Long>();
+	public static List<Long>suiteIds=new ArrayList<Long>(); 
+	public static Map<Long, String> suiteRuns=new HashMap<Long, String>();
+//	public static List<Long> browserList=new ArrayList<Long>();
+	public static Long[] browserList=new Long[1];
 	
 	
-	
-	
+	@SuppressWarnings("unchecked")
 	public static void main(String[] args) {
 	
 		APIClient client=new APIClient(baseUrl);
@@ -100,7 +107,7 @@ public class ReadfromTestRail {
 			System.out.println("========GET TESTRUNS(RUN IDs - NAMES) within a TESTPLAN=====");
 			Long runID = 0L;
 			String runName;
-			
+			Long suiteID=0L;
 			//Get TESTPLAN object
 			jsonObj= (JSONObject)client.sendGet("get_plan/"+planID);
 //			System.out.println("TESTPLAN Array:"+jsonObj);
@@ -112,7 +119,11 @@ public class ReadfromTestRail {
 				for(int i=0;i<jsonArr.size();i++){
 					jsonObj=(JSONObject)jsonArr.get(i);
 					runName=jsonObj.get("name").toString();//Get TESTRUN Name
+					suiteID=(Long)jsonObj.get("suite_id");//Get Suite ID
 					testRunNames.add(runName);
+					suiteIds.add(suiteID);
+//					browserList.add(1);
+					suiteRuns.put(suiteID,runName);
 					
 					//Get RUNS array
 					JSONArray jsonArrRuns=(JSONArray)jsonObj.get("runs");
@@ -189,7 +200,8 @@ public class ReadfromTestRail {
 					RETEST=4
 					BLOCKED=2
 					PASSED=1
-					FAILED=5*/
+					FAILED=5
+					*/
 	
 	 	try {
 	 		System.out.println("========Get FAILED TESTS INFO (status_id and test_id OF A TESTRUN=====");
@@ -204,6 +216,7 @@ public class ReadfromTestRail {
 					Long tId=(Long)jsonObj.get("test_id");
 					//Add to HashMap
 					failedTests.add(tId);
+					
 					}
 				}
 	 		}
@@ -222,6 +235,7 @@ public class ReadfromTestRail {
 					Long caseId=(Long)jsonObj.get("case_id"); //For re-adding test cases to Re-run testruns
 					String title=jsonObj.get("title").toString();
 					
+					failedCases.add(caseId);
 					failedCASE.put(caseId, title);
 					
 				}
@@ -236,8 +250,73 @@ public class ReadfromTestRail {
 	 		} catch (IOException | APIException e) {
 			e.printStackTrace();
 		}
+	
+	 	//GET SUITE ID FOR FAILED CASES and ADD case_ids(ArrayList) and suite_ids(Key) into Hashmap
+	 	try{
+	 		System.out.println("========GET SUITE ID FOR FAILED CASES and ADD case_ids(ArrayList) and suite_ids(Key) into Hashmap=====");
+
+//	 		List<Long> csID = new ArrayList<Long>();
+	 		Long suiteId = null;
+	 		
+	 		for(int i=0;i<failedCases.size();i++){
+ 			jsonObj= (JSONObject) client.sendGet("get_case/"+failedCases.get(i));
+ 			
+ 			//csID.add(failedCases.get(i));
+ 			suiteId=(Long)jsonObj.get("suite_id");
+ 			suiteIdFailedCASE.put(failedCases.get(i),suiteId);
+ 			}
+	 		
+	 		
+	 		
+//	 		TODO Create HashMap of Suite_IDs and corresponding failed Case_Ids Arraylist
+	 		List<Long> cIds=new ArrayList<Long>();
+	 		for(Long sId:suiteIds){
+//	 			??TODO  read values from Hasmap suiteIdFailedCASE
+	 			for (Map.Entry<Long,Long> entry : suiteIdFailedCASE.entrySet()) {
+		 			if(sId.equals(entry.getValue())){
+		 				cIds.add(entry.getKey());
+		 			}
+		 		}
+	 			suiteIDsfailedCASE.put(sId, cIds);
+	 		}
+	 		System.out.println("Suite IDs and Failed Cases List :");
+	 		System.out.println("SuiteID  :  Cases list");
+	 		for (Map.Entry<Long,List> entry : suiteIDsfailedCASE.entrySet()) {
+	 			System.out.println(entry.getKey()+" : "+entry.getValue());
+	 		}
+	 	}catch (IOException | APIException e) {
+			e.printStackTrace();
+		}
 	 	
-		
+	 	
+	 	//Create TEST RUNs in a TEST PLAN for Failed Test Runs
+	 	
+	 	
+		try {
+			System.out.println("========CREATING TEST RUN AND ADDING FAILED TESTS==============");
+	 	@SuppressWarnings("rawtypes")
+		Map postData=new HashMap();
+//	 	browserList[0]=(long) 6;
+		System.out.println("Creating a New Test Run for Failes tests..");
+		//Iterate suiteIdFailedCASE HashMap and through Add Request fields to the Hash Map
+		for (Map.Entry<Long, List> entry : suiteIDsfailedCASE.entrySet()){
+			System.out.println("Creating Data HashMap for SuiteID:"+entry.getKey());
+			postData.put("name", "Re-RunFailedTests_"+entry.getKey());//New testrun name
+			postData.put("suite_id", entry.getKey());//TODO sendGet(get_case/:case_id) to get suite_id
+//			postData.put("config_ids", browserList);//browser name TODO change to config_ids array
+			postData.put("case_ids", entry.getValue());//Failed Cases' Case_IDs
+			postData.put("include_all", false);
+//			Posting the info to Test Rail
+			System.out.println("Creating Test Run Re-RunFailedTests_"+entry.getKey()+"for SuiteID:"+entry.getKey());
+			client.sendPost("add_plan_entry/"+planID, postData);
+			}
+
+			
+			System.out.println("Created Testrun(s) successfully..");
+		} catch (IOException | APIException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	public static Long getID(String attribute, String attName) throws MalformedURLException, IOException, APIException, JSONException {
