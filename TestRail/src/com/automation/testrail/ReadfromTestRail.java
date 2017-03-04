@@ -13,6 +13,7 @@ import org.json.JSONException;
 import org.json.simple.JSONObject;
 
 public class ReadfromTestRail {
+	
 	//Initialize variables
 	public static String baseUrl="https://internationalsos.testrail.net";
 	public static String uName="bharath.nadukatla@gallop.net";
@@ -55,11 +56,11 @@ public class ReadfromTestRail {
 	public static List<Long> testCaseIds=new ArrayList<Long>();
 	public static Long testRunID;
 	
-	public ReadfromTestRail() {
+	/*public ReadfromTestRail() {
 		APIClient client=new APIClient(baseUrl);
 	 	client.setUser(uName);
 	 	client.setPassword(pwD);
-	}
+	}*/
 	
 	@SuppressWarnings("unchecked")
 	public static void main(String[] args) {
